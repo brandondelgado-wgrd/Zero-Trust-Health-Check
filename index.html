@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zero Trust Health Check - WatchGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav-bar">
+    <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Watchguard_logo.svg" alt="WatchGuard logo">
+    <div></div>
+  </nav>
+
+  <section class="hero">
+    <h1>Zero Trust Health Check</h1>
+    <p>Powerful Protection That's Reality-Ready</p>
+  </section>
+
+  <section class="main-content">
+    <div class="progress-bar">
+      <div class="progress-step active" data-step="1">
+        <div class="progress-step-circle">1</div>
+        <div class="progress-step-label">Partner & Customer Info</div>
+      </div>
+      <div class="progress-step" data-step="2">
+        <div class="progress-step-circle">2</div>
+        <div class="progress-step-label">Endpoint Apps</div>
+      </div>
+      <div class="progress-step" data-step="3">
+        <div class="progress-step-circle">3</div>
+        <div class="progress-step-label">Network Apps</div>
+      </div>
+      <div class="progress-step" data-step="4">
+        <div class="progress-step-circle">4</div>
+        <div class="progress-step-label">SaaS Apps</div>
+      </div>
+      <div class="progress-step" data-step="5">
+        <div class="progress-step-circle">5</div>
+        <div class="progress-step-label">Results</div>
+      </div>
+    </div>
+
+    <div class="step active" data-step="1">
+      <div class="card">
+        <h2 class="section-title">Customer & Your Information</h2>
+        
+        <div class="info-box">
+          <strong>Before you begin:</strong> Please enter your company information and the customer name. This information will appear on the generated report.
+        </div>
+
+        <div class="form-group">
+          <label for="partnerLogo">Your Company Logo</label>
+          <input type="file" id="partnerLogo" accept="image/*">
+          <img id="logoPreview" class="logo-preview" alt="Logo preview">
+        </div>
+
+        <div class="form-group">
+          <label for="partnerName">Your Company Name *</label>
+          <input type="text" id="partnerName" required placeholder="e.g., Partner Company, Palo Alto, California">
+        </div>
+
+        <div class="form-group">
+          <label for="partnerPhone">Your Phone Number *</label>
+          <input type="tel" id="partnerPhone" required placeholder="e.g., 760.218.4579">
+        </div>
+
+        <div class="form-group">
+          <label for="partnerEmail">Your Email *</label>
+          <input type="email" id="partnerEmail" required placeholder="e.g., contact@partner.com">
+        </div>
+
+        <div class="form-group">
+          <label for="customerName">Your Customer Name *</label>
+          <input type="text" id="customerName" required placeholder="Enter customer company name">
+        </div>
+
+        <div class="btn-container">
+          <div></div>
+          <button class="btn btn-primary" onclick="nextStep()">Next: Endpoint Apps Assessment</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="2">
+      <div class="card">
+        <h2 class="section-title">Endpoint Apps Assessment</h2>
+        
+        <div class="assessment-intro">
+          <p>In this domain, applications are installed locally on a laptop, server, workstation, or mobile device. Protecting these applications involves security software installed locally on the devices.</p>
+          
+          <p><strong>The Zero Trust Health Check examines key aspects such as:</strong></p>
+          <ul>
+            <li><strong>Coverage:</strong> Are all devices that run software currently running your security software?</li>
+            <li><strong>Hardening:</strong> Are all the applications that are capable of running on the Endpoints trusted?</li>
+            <li><strong>Authenticated:</strong> Are the people who use the devices verified by strong multi-factor authentication?</li>
+            <li><strong>Threat Detection:</strong> Are local threats like Ransomware detected when run?</li>
+            <li><strong>Threat Response:</strong> Do local threats, once detected, remove access to the device?</li>
+          </ul>
+        </div>
+
+        <table class="assessment-table">
+          <thead>
+            <tr>
+              <th style="width:70%">Audit Check</th>
+              <th style="width:30%">Zero Trust Pass/Fail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coverage: Is Endpoint Detection and Response (EDR) deployed across inventory: Windows, Linux, Mac, iOS, and Android?</td>
+              <td>
+                <select id="endpoint_1" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Hardening: If an untrusted portable application is run like the Zero Trust Auditor Tool, is it blocked by default?</td>
+              <td>
+                <select id="endpoint_2" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Authenticated: Are Identity controls for Local Authentication (Logon Process MFA) and conditional access in place?</td>
+              <td>
+                <select id="endpoint_3" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Detection: Using Windows and the Zero Trust Auditor Tool, can the EDR detect Local Ransomware Attacks?</td>
+              <td>
+                <select id="endpoint_4" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Response: Once ransomware is detected, is there an Incident Response Process in place to automatically isolate the device?</td>
+              <td>
+                <select id="endpoint_5" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="btn-container">
+          <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+          <button class="btn btn-primary" onclick="nextStep()">Next: Network Apps Assessment</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="3">
+      <div class="card">
+        <h2 class="section-title">Network Apps Assessment</h2>
+        
+        <div class="assessment-intro">
+          <p>In this domain, applications are inside company-run data centers, such as a cloud provider, office facility, or colocation provider. In this scenario, we require network visibility around the device.</p>
+          
+          <p><strong>The Zero Trust Health Check examines key aspects such as:</strong></p>
+          <ul>
+            <li><strong>Coverage:</strong> Are there network filters between your hosted networked apps and the endpoints?</li>
+            <li><strong>Hardening:</strong> Are there policies to group which devices are permitted to access networked applications?</li>
+            <li><strong>Authenticated:</strong> Are there policies to group which users are permitted to access networked applications?</li>
+            <li><strong>Threat Detection:</strong> Are network threats like MITRE techniques detected when run?</li>
+            <li><strong>Threat Response:</strong> Do network threats, once detected, remove access to the device?</li>
+          </ul>
+        </div>
+
+        <table class="assessment-table">
+          <thead>
+            <tr>
+              <th style="width:70%">Audit Check</th>
+              <th style="width:30%">Zero Trust Pass/Fail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coverage: Perimeter Firewall Deployed between the Endpoints and Networked Apps (Servers), Internet, and Partner Sites?</td>
+              <td>
+                <select id="network_1" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Hardening: Is there an automatic Inventory of all Local Devices and Applications such that only trusted groups are permitted to access applications?</td>
+              <td>
+                <select id="network_2" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Authenticated: Is traffic currently authenticated to show which users are accessing which application internally on the network?</td>
+              <td>
+                <select id="network_3" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Detection: Are network threats like the download of an EICAR virus detected by the perimeter firewall and blocked?</td>
+              <td>
+                <select id="network_4" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Respond: Once detected is there an Incident Response process to eliminate further connections?</td>
+              <td>
+                <select id="network_5" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="btn-container">
+          <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+          <button class="btn btn-primary" onclick="nextStep()">Next: SaaS Apps Assessment</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="4">
+      <div class="card">
+        <h2 class="section-title">SaaS Apps Assessment</h2>
+        
+        <div class="assessment-intro">
+          <p>In this domain, applications are managed by a 3rd party Software as a Service provider such as Microsoft 365 (Teams, SharePoint or OneDrive). In this scenario we require visibility into the network, endpoint and identities in use by the SaaS product with Enforcement.</p>
+          
+          <p><strong>The Zero Trust Health Check examines key aspects such as:</strong></p>
+          <ul>
+            <li><strong>Coverage:</strong> Are all cloud applications in use by devices monitored regardless of location?</li>
+            <li><strong>Hardening:</strong> Are there policies only allowing trusted SaaS applications?</li>
+            <li><strong>Authenticated:</strong> Are users verified by strong multi-factor authentication?</li>
+            <li><strong>Threat Detection:</strong> Are threats like Account Takeovers detected?</li>
+            <li><strong>Threat Response:</strong> When threats are detected, is access removed?</li>
+          </ul>
+        </div>
+
+        <table class="assessment-table">
+          <thead>
+            <tr>
+              <th style="width:70%">Audit Check</th>
+              <th style="width:30%">Zero Trust Pass/Fail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coverage: Can you list all the 3rd party SaaS applications and their usage in the org inside and outside the office?</td>
+              <td>
+                <select id="saas_1" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Hardening: Can you allow or block access to these applications by category or app name?</td>
+              <td>
+                <select id="saas_2" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Authenticated: Is traffic currently authenticated to show which users are accessing which 3rd party SaaS application?</td>
+              <td>
+                <select id="saas_3" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Detection: Are network threats like the malicious URL in the Zero Trust Auditor tool detected and blocked by your SASE?</td>
+              <td>
+                <select id="saas_4" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>Respond: Once detected is there an Incident Response process to eliminate further connections?</td>
+              <td>
+                <select id="saas_5" class="assessment-field">
+                  <option value="">Select...</option>
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="btn-container">
+          <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+          <button class="btn btn-primary" onclick="nextStep()">Next: View Results</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="5">
+      <div class="card">
+        <h2 class="section-title">Assessment Results</h2>
+        
+        <div class="score-display" id="scoreDisplay">
+          Calculating...
+        </div>
+
+        <div class="results-summary">
+          <h3>Domain Status</h3>
+          <div class="domain-status" id="domainStatus"></div>
+        </div>
+
+        <div class="info-box">
+          <strong>Next Steps:</strong> Click the button below to generate a professional PDF report of this Zero Trust Health Check assessment. This report can be shared with your customer to discuss their security posture and opportunities for improvement.
+        </div>
+
+        <div class="btn-container">
+          <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+          <button class="btn btn-primary" onclick="generatePDF()">Generate PDF Report</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<script src="script.js"></script>
+</body>
+</html>
