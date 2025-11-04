@@ -243,22 +243,24 @@ document.addEventListener('DOMContentLoaded', () => {
       doc.line(originX, originY, originX + graphWidth, originY);
       doc.setLineDashPattern([], 0);
 
-      // --- Y-Axis Label (CORRIGIDO) ---
+      // --- Y-Axis Label (FIXED) ---
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100);
 
-      // Dividido em três linhas para renderização estável
-      const yAxisCenter = originY - (graphHeight / 2); // Ponto médio vertical
-      const yAxisX = originX - 5; // Posição X (5 unidades à esquerda do eixo)
+      // Position for rotated text on Y-axis
+      // When rotating 90 degrees, the Y coordinate becomes the starting point
+      // and text flows upward from that point
+      const yAxisX = originX - 3; // Distance from Y-axis
       
-      // Ajuste este valor para mais ou menos espaço entre as palavras
-      const labelSpacing = 15; 
-
-      doc.text("Visibility,", yAxisX, yAxisCenter - labelSpacing, { align: 'center', angle: 90 });
-      doc.text("Control,",    yAxisX, yAxisCenter,                 { align: 'center', angle: 90 });
-      doc.text("Automation",  yAxisX, yAxisCenter + labelSpacing, { align: 'center', angle: 90 });
-      // --- Fim da Correção ---
+      // Calculate the center position for the full label
+      const yAxisBottom = originY - 5; // Start slightly above the origin
+      
+      // Combine all three words into one rotated text for consistent positioning
+      doc.text("Visibility      Control      Automation", yAxisX, yAxisBottom, { 
+        angle: 90 
+      });
+      // --- End of Fix ---
 
 
       // X-Axis Labels
@@ -278,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 38, 99); // Dark Blue
-      doc.text("Zero Trust", endX, endY - 3, { align: 'center' });
+      doc.text("Zero Trust", endX, endY - 5, { align: 'center' });
 
       // Calculate and Draw "You Are Here" Marker
       const totalDomains = 3;
@@ -470,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       doc.text(wrapped, margin + 3, y);
       y += wrapped.length * 5 + 1.5;
     });
-    y += 6;
+    y += 9;
 
     // =========================================================================
     // 6. YOUR SCENARIO (INPUTS)
@@ -524,6 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
       doc.addPage();
       y = margin;
     }
+    y += 6;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('METHODOLOGY & SOURCES', margin, y);
@@ -542,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
     y += 4;
     doc.text('  hardening, authentication, detection, and response across all application domains.', margin + 5, y);
     
-    y += 10;
+    y += 15;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7);
     doc.text('Disclaimer: This health check provides a high-level assessment and is not an exhaustive security audit.', margin + 3, y);
