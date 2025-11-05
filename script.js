@@ -262,12 +262,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       // --- End of Fix ---
 
+      // X-Axis Labels (Numbers)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text("1", originX + (graphWidth * 0.25), originY + 5, { align: 'center' });
+      doc.text("2", originX + (graphWidth * 0.5), originY + 5, { align: 'center' });
+      doc.text("3", originX + (graphWidth * 0.75), originY + 5, { align: 'center' });
 
-      // X-Axis Labels
-      doc.text("Endpoint Apps", originX + (graphWidth * 0.25), originY + 5, { align: 'center' });
-      doc.text("Network Apps", originX + (graphWidth * 0.5), originY + 5, { align: 'center' });
-      doc.text("SaaS Apps", originX + (graphWidth * 0.75), originY + 5, { align: 'center' });
-
+      // X-Axis Title
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100);
+      doc.text("Domains Protected", originX + (graphWidth / 2), originY + 12, { align: 'center' });
+      doc.setTextColor(0);
+      
       // Draw Diagonal Path
       const endX = originX + graphWidth - 10;
       const endY = startY + 5;
@@ -284,9 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Calculate and Draw "You Are Here" Marker
       const totalDomains = 3;
-      const progress = passedDomains / totalDomains;
-      const markerX = originX + ((endX - originX) * progress);
-      const markerY = originY + ((endY - originY) * progress);
+      // Position marker at 0.25, 0.5, or 0.75 to align with X-axis labels
+      const markerX = originX + (graphWidth * (passedDomains * 0.25));
+      // Calculate Y position along the diagonal line at this X position
+      const progressAlongLine = (markerX - originX) / (endX - originX);
+      const markerY = originY + ((endY - originY) * progressAlongLine);
 
       doc.setFillColor(232, 20, 16); // Red
       doc.circle(markerX, markerY, 4, 'F');
