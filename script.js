@@ -337,6 +337,31 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
     y += 10;
 
+    // Add partner logo to top right corner (above the line)
+    if (inputs.logoData) {
+        try {
+            const imgProps = doc.getImageProperties(inputs.logoData);
+            const ratio = imgProps.height / imgProps.width;
+            
+            // Calculate available space between top and the line
+            const linePosition = margin + 3; // Where the line is drawn
+            const topMargin = 3; // Small margin from top of page
+            const maxLogoHeight = linePosition - topMargin - 2; // Leave 2mm gap from line
+            
+            // Calculate logo dimensions to fit in available space
+            const logoHeight = Math.min(maxLogoHeight, 18); // Max 18mm height
+            const logoWidth = logoHeight / ratio;
+            
+            // Position logo in top right corner
+            const logoX = pageWidth - margin - logoWidth;
+            const logoY = topMargin;
+            
+            doc.addImage(inputs.logoData, imgProps.format || 'PNG', logoX, logoY, logoWidth, logoHeight);
+        } catch (e) {
+            console.error('Failed to add partner logo to PDF:', e);
+        }
+    }
+
     // =========================================================================
     // 2. EXECUTIVE SUMMARY - THE BOTTOM LINE
     // =========================================================================
@@ -573,21 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.setFontSize(7);
         doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' });
         doc.setTextColor(0);
-
-        // Add partner logo to first page if it exists
-        if (i === 1 && inputs.logoData) {
-            try {
-                const imgProps = doc.getImageProperties(inputs.logoData);
-                const ratio = imgProps.height / imgProps.width;
-                const logoWidth = 50;
-                const logoHeight = logoWidth * ratio;
-                // Position logo above footer
-                const logoY = pageHeight - 30 - logoHeight; 
-                doc.addImage(inputs.logoData, imgProps.format || 'PNG', margin, logoY, logoWidth, logoHeight);
-            } catch (e) {
-                console.error('Failed to add partner logo to PDF:', e);
-            }
-        }
     }
 
     // Save PDF
