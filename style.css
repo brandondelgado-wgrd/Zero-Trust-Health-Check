@@ -297,3 +297,25 @@ input[type="file"] {
 .assessment-intro li {
   margin-bottom: 8px;
 }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+/* style.css (Adicionar ao final) */
+
+.success-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* Espaço entre o texto e o botão */
+}
+
+.success-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--wg-green); /* Usa a cor verde da sua paleta */
+}
+
+/* Garante que o link de download se pareça exatamente com um botão */
+.success-actions .btn-primary {
+  text-decoration: none;
+}
