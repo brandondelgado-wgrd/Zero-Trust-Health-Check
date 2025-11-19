@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       console.log('Sending data to webhook:', payload);
 
-      const response = await fetch('https://watchguard.app.n8n.cloud/webhook/4896c0bf-99c5-4bda-8811-81dca8bbd3e6', {
+      const response = await fetch('https://n8n.bdelgado.com/webhook/4896c0bf-99c5-4bda-8811-81dca8bbd3e6', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
