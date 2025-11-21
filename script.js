@@ -1,6 +1,13 @@
 // Wrap all logic in DOMContentLoaded to ensure elements are loaded
 document.addEventListener('DOMContentLoaded', () => {
 
+  // --- TEST CODE TO AUTO-FILL "PASS" ---
+  // Find all select elements with the class "assessment-field" and set their value to "PASS"
+  document.querySelectorAll('.assessment-field').forEach(selectElement => {
+    selectElement.value = 'PASS';
+  });
+  // --- END TEST CODE ---
+
   let currentStep = 1;
   let partnerLogoData = null;
 
@@ -20,7 +27,38 @@ document.addEventListener('DOMContentLoaded', () => {
           partnerLogoData = event.target.result;
           const preview = document.getElementById('logoPreview');
           preview.src = partnerLogoData;
-          preview.style.display = 'block';
+          
+          // Load image to get original dimensions and calculate optimal size
+          const img = new Image();
+          img.onload = function() {
+            const maxWidth = 225.48;
+            const maxHeight = 108.17;
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+            
+            // Calculate aspect ratio
+            const aspectRatio = width / height;
+            
+            // Scale to fit within max dimensions while maintaining aspect ratio
+            if (width > maxWidth || height > maxHeight) {
+              if (width / maxWidth > height / maxHeight) {
+                // Width is the limiting factor
+                width = maxWidth;
+                height = width / aspectRatio;
+              } else {
+                // Height is the limiting factor
+                height = maxHeight;
+                width = height * aspectRatio;
+              }
+            }
+            
+            // Apply calculated dimensions to preview
+            preview.style.width = width + 'px';
+            preview.style.height = height + 'px';
+            preview.style.objectFit = 'contain';
+            preview.style.display = 'block';
+          };
+          img.src = partnerLogoData;
         };
         reader.readAsDataURL(file);
       }
@@ -43,12 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function validateStep(step) {
     if (step === 1) {
       const partnerName = document.getElementById('partnerName').value.trim();
+      const yourName = document.getElementById('yourName').value.trim();
+      const yourRole = document.getElementById('yourRole').value.trim();
       const partnerPhone = document.getElementById('partnerPhone').value.trim();
       const partnerEmail = document.getElementById('partnerEmail').value.trim();
       const customerName = document.getElementById('customerName').value.trim();
       
-      if (!partnerName || !partnerPhone || !partnerEmail || !customerName) {
-        alert('Please fill in all required fields (Partner Name, Phone, Email, and Customer Name)');
+      if (!partnerName || !yourName || !yourRole || !partnerPhone || !partnerEmail || !customerName) {
+        alert('Please fill in all required fields.');
         return false;
       }
     }
@@ -89,10 +129,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * MODIFIED FUNCTION
+   * Adds logic to reset the Step 5 buttons if the user navigates back.
+   */
   function prevStep() {
     if (currentStep > 1) {
       currentStep--;
       showStep(currentStep);
+
+      // --- START OF MODIFICATION ---
+      // If we left step 5, reset the buttons
+      if (currentStep < 5) {
+        const genContainer = document.getElementById('generate-container');
+        const dlContainer = document.getElementById('download-container');
+        
+        if (genContainer && dlContainer) {
+          // Show the generate button
+          genContainer.style.display = 'flex';
+          // Hide the download button
+          dlContainer.style.display = 'none';
+          // Clear the old link
+          document.getElementById('download-pdf-link').href = '#'; 
+        }
+      }
+      // --- END OF MODIFICATION ---
     }
   }
 
@@ -103,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo(0, 0);
   }
 
-  // This function calculates results *for the UI on Step 5*
+  // This function calculates the results for the UI (Step 5)
   function calculateResults() {
     const { passedDomains, domainResults } = getAssessmentResults();
     
@@ -119,15 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Master function to gather all assessment data.
-   * This is used by both the UI (calculateResults) and the PDF (generatePDF).
+   * Master function to collect all assessment data.
    */
   function getAssessmentResults() {
     const domains = ['endpoint', 'network', 'saas'];
     const domainNames = ['Endpoint Apps', 'Network Apps', 'SaaS Apps'];
     let passedDomains = 0;
-    let domainResults = []; // For UI
-    let allResults = {}; // For PDF
+  let domainResults = []; // For UI
+  let allResults = {}; // For webhook payload
     
     const domainQuestions = {
       endpoint: [
@@ -156,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     domains.forEach((domain, index) => {
       let passes = 0;
       let results = [];
-      let detailedFindings = []; // For PDF
+      let detailedFindings = [];
       
       for (let i = 1; i <= 5; i++) {
         const value = document.getElementById(`${domain}_${i}`).value;
@@ -168,17 +228,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
       
-      const isPassed = passes >= 4; // Need 4 out of 5 to pass domain
+  const isPassed = passes >= 4; // Needs 4 out of 5 to pass
       if (isPassed) passedDomains++;
       
-      // For UI
+  // For UI
       domainResults.push({
         name: domainNames[index],
         passed: isPassed,
         score: `${passes}/5`
       });
 
-      // For PDF
+  // For webhook
       allResults[domain] = {
         name: domainNames[index],
         passes: passes,
@@ -192,417 +252,137 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Collects all user inputs from Step 1.
+   * Collect all Step 1 inputs
    */
   function collectInputs() {
     return {
       partnerName: document.getElementById('partnerName').value,
+      yourName: document.getElementById('yourName').value,
+      yourRole: document.getElementById('yourRole').value,
       partnerPhone: document.getElementById('partnerPhone').value,
       partnerEmail: document.getElementById('partnerEmail').value,
-      customerName: document.getElementById('customerName').value,
-      logoData: partnerLogoData
+      customerName: document.getElementById('customerName').value
     };
   }
 
   /**
-   * Generates the standardized "Bottom Line First" PDF report.
-   * This function is triggered by the "Generate PDF Report" button.
+   * MODIFIED FUNCTION
+   * Sends all data to the webhook and controls display of the new button containers.
    */
-  function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  async function generatePDF() {
+    // Try to find a button element to show loading state. The HTML may not
+    // include an ID, so fall back to a selector for the inline onclick.
+    const button = document.getElementById('generate-pdf-btn')
+      || document.querySelector('button[onclick="generatePDF()"]')
+      || document.querySelector('.btn-primary[onclick="generatePDF()"]')
+      || null;
 
-    // 1. GATHER DATA
-    const inputs = collectInputs();
-    const results = getAssessmentResults();
+    const originalText = button && button.textContent ? button.textContent : '';
 
-    // 2. DEFINE HELPERS
-    function drawBox(x, y, width, height, fill = false, fillColor = 240) {
-      if (fill) {
-        doc.setFillColor(fillColor, fillColor, fillColor);
-        doc.rect(x, y, width, height, 'F');
-      }
-      doc.setDrawColor(0);
-      doc.rect(x, y, width, height);
-    }
-    
-    // *** MODIFIED FUNCTION to draw the "You Are Here" graph ***
-    function drawJourneyGraph(startY, passedDomains) {
-      const graphHeight = 60;
-      const graphWidth = contentWidth - 10;
-      const originX = margin + 10;
-      const originY = startY + graphHeight;
-
-      // Draw Axes
-      doc.setLineDashPattern([1, 1], 0);
-      doc.setLineWidth(0.5);
-      doc.setDrawColor(150);
-      // Y-Axis
-      doc.line(originX, originY, originX, startY); 
-      // X-Axis
-      doc.line(originX, originY, originX + graphWidth, originY);
-      doc.setLineDashPattern([], 0);
-
-      // --- Y-Axis Label (FIXED) ---
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100);
-
-      // Position for rotated text on Y-axis
-      // When rotating 90 degrees, the Y coordinate becomes the starting point
-      // and text flows upward from that point
-      const yAxisX = originX - 3; // Distance from Y-axis
-      
-      // Calculate the center position for the full label
-      const yAxisBottom = originY - 5; // Start slightly above the origin
-      
-      // Combine all three words into one rotated text for consistent positioning
-      doc.text("Visibility      Control      Automation", yAxisX, yAxisBottom, { 
-        angle: 90 
-      });
-      // --- End of Fix ---
-
-      // X-Axis Labels (Numbers)
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text("1", originX + (graphWidth * 0.25), originY + 5, { align: 'center' });
-      doc.text("2", originX + (graphWidth * 0.5), originY + 5, { align: 'center' });
-      doc.text("3", originX + (graphWidth * 0.75), originY + 5, { align: 'center' });
-
-      // X-Axis Title
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100);
-      doc.text("Domains Protected", originX + (graphWidth / 2), originY + 12, { align: 'center' });
-      doc.setTextColor(0);
-      
-      // Draw Diagonal Path
-      const endX = originX + graphWidth - 10;
-      const endY = startY + 5;
-      doc.setLineDashPattern([1, 1], 0);
-      doc.setDrawColor(232, 20, 16); // Red path
-      doc.line(originX, originY, endX, endY);
-      doc.setLineDashPattern([], 0);
-
-      // Draw Goal
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 38, 99); // Dark Blue
-      doc.text("Zero Trust", endX, endY - 5, { align: 'center' });
-
-      // Calculate and Draw "You Are Here" Marker
-      const totalDomains = 3;
-      // Position marker at 0.25, 0.5, or 0.75 to align with X-axis labels
-      const markerX = originX + (graphWidth * (passedDomains * 0.25));
-      // Calculate Y position along the diagonal line at this X position
-      const progressAlongLine = (markerX - originX) / (endX - originX);
-      const markerY = originY + ((endY - originY) * progressAlongLine);
-
-      doc.setFillColor(232, 20, 16); // Red
-      doc.circle(markerX, markerY, 4, 'F');
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0);
-      doc.text("You Are Here", markerX, markerY + 8, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.text(`(${passedDomains} of ${totalDomains} Domains Protected)`, markerX, markerY + 12, { align: 'center' });
-
-      return originY + 15; // Return end Y position
-    }
-
-    const brand = 'WatchGuard';
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const margin = 20;
-    const contentWidth = pageWidth - (2 * margin);
-    let y = margin;
-
-    // =========================================================================
-    // 1. HEADER & TITLE
-    // =========================================================================
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Zero Trust Health Check', margin, y);
-    y += 3;
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 8;
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Prepared for: ${inputs.customerName || 'Customer'}`, margin, y);
-    doc.text(`Prepared by: ${inputs.partnerName || 'Partner'}`, pageWidth - margin, y, { align: 'right' });
-    y += 5;
-    doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
-    y += 10;
-
-    // Add partner logo to top right corner (above the line)
-    if (inputs.logoData) {
-        try {
-            const imgProps = doc.getImageProperties(inputs.logoData);
-            const ratio = imgProps.height / imgProps.width;
-            
-            // Calculate available space between top and the line
-            const linePosition = margin + 3; // Where the line is drawn
-            const topMargin = 3; // Small margin from top of page
-            const maxLogoHeight = linePosition - topMargin - 2; // Leave 2mm gap from line
-            
-            // Calculate logo dimensions to fit in available space
-            const logoHeight = Math.min(maxLogoHeight, 18); // Max 18mm height
-            const logoWidth = logoHeight / ratio;
-            
-            // Position logo in top right corner
-            const logoX = pageWidth - margin - logoWidth;
-            const logoY = topMargin;
-            
-            doc.addImage(inputs.logoData, imgProps.format || 'PNG', logoX, logoY, logoWidth, logoHeight);
-        } catch (e) {
-            console.error('Failed to add partner logo to PDF:', e);
-        }
-    }
-
-    // =========================================================================
-    // 2. EXECUTIVE SUMMARY - THE BOTTOM LINE
-    // =========================================================================
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('EXECUTIVE SUMMARY', margin, y);
-    y += 8;
-    
-    // Recommendation
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    const recommendation = results.passedDomains === 3 ? 'RECOMMENDATION: ZT POSTURE STRONG' : 'RECOMMENDATION: REVIEW DOMAIN GAPS';
-    doc.text(recommendation, margin + contentWidth / 2, y, { align: 'center' });
-    y += 10;
-    
-    // Draw the new "You Are Here" journey graph
-    y = drawJourneyGraph(y, results.passedDomains);
-    y += 10; // Add padding after the graph
-
-    // =========================================================================
-    // 3. DOMAIN SCORE COMPARISON
-    // =========================================================================
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DOMAIN SCORE COMPARISON (CHECKS PASSED)', margin, y);
-    y += 8;
-    
-    const maxScore = 5; // 5 checks per domain
-    const maxBarWidth = contentWidth - 80;
-    const barHeight = 10;
-    const labelWidth = 45;
-    
-    function drawScoreBar(label, score, yPos) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(label, margin, yPos + 7);
-      const barWidth = (score / maxScore) * maxBarWidth;
-      // Use WG-Red for the bar fill
-      doc.setFillColor(232, 20, 16); 
-      doc.rect(margin + labelWidth, yPos, barWidth, barHeight, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${score} / ${maxScore}`, margin + labelWidth + barWidth + 3, yPos + 7);
-      return yPos + barHeight + 6;
-    }
-
-    y = drawScoreBar('Endpoint Apps:', results.allResults.endpoint.passes, y);
-    y = drawScoreBar('Network Apps:', results.allResults.network.passes, y);
-    y = drawScoreBar('SaaS Apps:', results.allResults.saas.passes, y);
-    y += 10;
-
-    // =========================================================================
-    // 4. DETAILED ASSESSMENT FINDINGS
-    // =========================================================================
-    if (y > pageHeight - 60) {
-        doc.addPage();
-        y = margin;
-    }
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DETAILED ASSESSMENT FINDINGS', margin, y);
-    y += 8;
-
-    function drawFindingsTable(domain) {
-      if (y > pageHeight - 60) {
-        doc.addPage();
-        y = margin;
+    try {
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Generating PDF Report...';
       }
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(domain.name, margin, y);
-      y += 6;
-      
-      // Table header
-      doc.setFillColor(230, 230, 230);
-      doc.rect(margin, y, contentWidth, 8, 'F');
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Audit Check', margin + 2, y + 6);
-      doc.text('Result', margin + contentWidth - 20, y + 6);
-      y += 8;
+      const inputs = collectInputs();
+      const results = getAssessmentResults();
 
-      // Table rows
-      doc.setFont('helvetica', 'normal');
-      domain.findings.forEach((item, idx) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = margin;
+  // Prepare the payload with all data (unchanged)
+      const payload = {
+        formData: {
+          partnerName: inputs.partnerName,
+          yourName: inputs.yourName,
+          yourRole: inputs.yourRole,
+          partnerPhone: inputs.partnerPhone,
+          partnerEmail: inputs.partnerEmail,
+          customerName: inputs.customerName,
+          assessmentDate: new Date().toLocaleDateString('pt-BR')
+        },
+        logoBase64: partnerLogoData,
+        summary: {
+          passedDomains: results.passedDomains,
+          totalDomains: 3
+        },
+        domains: {
+          endpoint: {
+            name: 'Endpoint Apps',
+            passed: results.allResults.endpoint.passed,
+            totalPasses: results.allResults.endpoint.passes,
+            totalQuestions: 5,
+            items: results.allResults.endpoint.findings.map(f => ({
+              question: f.question,
+              result: f.result,
+              points: f.result === 'PASS' ? 1 : 0
+            }))
+          },
+          network: {
+            name: 'Network Apps',
+            passed: results.allResults.network.passed,
+            totalPasses: results.allResults.network.passes,
+            totalQuestions: 5,
+            items: results.allResults.network.findings.map(f => ({
+              question: f.question,
+              result: f.result,
+              points: f.result === 'PASS' ? 1 : 0
+            }))
+          },
+          saas: {
+            name: 'SaaS Apps',
+            passed: results.allResults.saas.passed,
+            totalPasses: results.allResults.saas.passes,
+            totalQuestions: 5,
+            items: results.allResults.saas.findings.map(f => ({
+              question: f.question,
+              result: f.result,
+              points: f.result === 'PASS' ? 1 : 0
+            }))
+          }
         }
-        const rowColor = idx % 2 === 0 ? 255 : 245;
-        doc.setFillColor(rowColor, rowColor, rowColor);
-        doc.rect(margin, y, contentWidth, 8, 'F');
-        
-        const wrappedText = doc.splitTextToSize(item.question, contentWidth - 30);
-        doc.text(wrappedText, margin + 2, y + 5);
-        
-        const resultColor = item.result === 'PASS' ? [42, 143, 72] : [220, 53, 69];
-        doc.setTextColor(...resultColor);
-        doc.setFont('helvetica', 'bold');
-        doc.text(item.result, margin + contentWidth - 20, y + 5);
-        doc.setTextColor(0);
-        doc.setFont('helvetica', 'normal');
-        
-        y += (wrappedText.length * 4) + 4; // Adjust height for wrapped text
+      };
+
+      console.log('Sending data to webhook:', payload);
+
+      const response = await fetch('https://n8n.bdelgado.com/webhook/4896c0bf-99c5-4bda-8811-81dca8bbd3e6', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      y += 6;
+
+      if (!response.ok) {
+        throw new Error(`Error generating PDF: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Response:', result);
+
+      if (result.pdfUrl || result.pdf_url || result.url || result.link) {
+        const pdfUrl = result.pdfUrl || result.pdf_url || result.url || result.link;
+
+        const genContainer = document.getElementById('generate-container');
+        if (genContainer) genContainer.style.display = 'none';
+
+        const downloadLink = document.getElementById('download-pdf-link');
+        if (downloadLink) downloadLink.href = pdfUrl;
+
+        const downloadContainer = document.getElementById('download-container');
+        if (downloadContainer) downloadContainer.style.display = 'flex';
+
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = originalText;
+        }
+      } else {
+        throw new Error('PDF not found');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(`Erro generating PDF: ${error.message}\n\nPlease, try again.`);
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     }
-
-    drawFindingsTable(results.allResults.endpoint);
-    drawFindingsTable(results.allResults.network);
-    drawFindingsTable(results.allResults.saas);
-
-
-    // =========================================================================
-    // 5. BUSINESS IMPACT & BENEFITS
-    // =========================================================================
-    if (y > pageHeight - 60) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BUSINESS IMPACT & BENEFITS OF ZERO TRUST', margin, y);
-    y += 2;
-
-    const benefitsHeight = 40;
-    drawBox(margin, y, contentWidth, benefitsHeight, false);
-    y += 6;
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    
-    const benefits = [
-      '- Reduced Attack Surface: Enforces "least privilege" access for all users and devices.',
-      '- Improved Threat Detection: Continuously validates identity and device health before granting access.',
-      '- Faster Breach Containment: Automatically isolates compromised devices or users.',
-      '- Simplified Compliance: Provides granular logging and access control required by regulations.',
-      '- Secure Remote Work: Enables secure access to applications from any location or device.'
-    ];
-    
-    benefits.forEach(line => {
-      const wrapped = doc.splitTextToSize(line, contentWidth - 6);
-      doc.text(wrapped, margin + 3, y);
-      y += wrapped.length * 5 + 1.5;
-    });
-    y += 9;
-
-    // =========================================================================
-    // 6. YOUR SCENARIO (INPUTS)
-    // =========================================================================
-    if (y > pageHeight - 60) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ASSESSMENT SCENARIO', margin, y);
-    y += 2;
-    
-    const inputLines = [
-      `Customer Name: ${inputs.customerName}`,
-      `Partner Name: ${inputs.partnerName}`,
-      `Partner Phone: ${inputs.partnerPhone}`,
-      `Partner Email: ${inputs.partnerEmail}`
-    ];
-    
-    const scenarioHeight = Math.ceil(inputLines.length / 2) * 5 + 10;
-    drawBox(margin, y, contentWidth, scenarioHeight, true, 250);
-    y += 6;
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    
-    const scenario1X = margin + 3;
-    const scenario2X = margin + contentWidth / 2 + 3;
-    let tempY = y;
-    let lineCount = 0;
-    const midPoint = Math.ceil(inputLines.length / 2);
-    
-    for(let i = 0; i < midPoint; i++) {
-        doc.text(inputLines[i], scenario1X, tempY);
-        tempY += 5;
-    }
-    
-    tempY = y;
-    for(let i = midPoint; i< inputLines.length; i++) {
-        doc.text(inputLines[i], scenario2X, tempY);
-        tempY += 5;
-    }
-    
-    y += scenarioHeight - 4; // Adjust spacing
-
-    // =========================================================================
-    // 7. METHODOLOGY & SOURCES
-    // =========================================================================
-    if (y > pageHeight - 40) {
-      doc.addPage();
-      y = margin;
-    }
-    y += 6;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('METHODOLOGY & SOURCES', margin, y);
-    y += 2;
-    
-    const methodHeight = 25;
-    drawBox(margin, y, contentWidth, methodHeight, false);
-    y += 6;
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    
-    doc.text('• Domain Scoring: A domain is considered "PASSED" if it meets 4 out of 5 of the audit checks.', margin + 3, y);
-    y += 6;
-    doc.text('• Assessment Framework: Based on WatchGuard\'s Zero Trust principles, evaluating coverage,', margin + 3, y);
-    y += 4;
-    doc.text('  hardening, authentication, detection, and response across all application domains.', margin + 5, y);
-    
-    y += 15;
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7);
-    doc.text('Disclaimer: This health check provides a high-level assessment and is not an exhaustive security audit.', margin + 3, y);
-
-    // --- Footer ---
-    // This loops through all pages to add footer and partner logo (on page 1)
-    const pageCount = doc.internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        const footerY = pageHeight - 15;
-        
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(`${brand} Zero Trust Health Check`, pageWidth / 2, footerY, { align: 'center' });
-        doc.setFontSize(7);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' });
-        doc.setTextColor(0);
-    }
-
-    // Save PDF
-    const safeName = inputs.customerName.replace(/\s+/g, '_') || 'Report';
-    doc.save(`${brand}_ZT_HealthCheck_${safeName}.pdf`);
   }
 
   // Initial setup
